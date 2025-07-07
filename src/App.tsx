@@ -22,8 +22,59 @@ const App: React.FC = () => {
   const hasCenteredInitially = useRef(false);
   const lastCenteredId = useRef<string>('prophet');
 
-  const zoomIn = () => setScale((s) => Math.min(s * 1.2, 4));
-  const zoomOut = () => setScale((s) => Math.max(s / 1.2, 0.2));
+  // 🔒 Disable browser pinch/zoom
+  useEffect(() => {
+    const preventZoom = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) e.preventDefault();
+    };
+    const preventGesture = (e: Event) => e.preventDefault();
+
+    window.addEventListener('wheel', preventZoom, { passive: false });
+    window.addEventListener('gesturestart', preventGesture);
+    window.addEventListener('gesturechange', preventGesture);
+    window.addEventListener('gestureend', preventGesture);
+
+    return () => {
+      window.removeEventListener('wheel', preventZoom);
+      window.removeEventListener('gesturestart', preventGesture);
+      window.removeEventListener('gesturechange', preventGesture);
+      window.removeEventListener('gestureend', preventGesture);
+    };
+  }, []);
+
+  const zoomIn = () => {
+    const factor = 1.2;
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
+    const mouseX = (centerX - translate.x) / scale;
+    const mouseY = (centerY - translate.y) / scale;
+
+    setScale(prevScale => {
+      const newScale = Math.min(prevScale * factor, 4);
+      setTranslate({
+        x: centerX - mouseX * newScale,
+        y: centerY - mouseY * newScale,
+      });
+      return newScale;
+    });
+  };
+
+  const zoomOut = () => {
+    const factor = 1 / 1.2;
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
+    const mouseX = (centerX - translate.x) / scale;
+    const mouseY = (centerY - translate.y) / scale;
+
+    setScale(prevScale => {
+      const newScale = Math.max(prevScale * factor, 0.2);
+      setTranslate({
+        x: centerX - mouseX * newScale,
+        y: centerY - mouseY * newScale,
+      });
+      return newScale;
+    });
+  };
 
   const centerOnCoordinates = (x: number, y: number) => {
     const centerX = window.innerWidth / 2;
@@ -34,30 +85,45 @@ const App: React.FC = () => {
     });
   };
 
-  const resetZoom = () => {
+const resetZoom = () => {
+  setScale(1);
+
+  // Delay centering until after scale change takes effect
+  setTimeout(() => {
     const targetId = lastCenteredId.current;
     const el = document.getElementById(targetId);
     const container = document.querySelector('.family-tree-root');
     if (el && container) {
       const box = el.getBoundingClientRect();
       const graph = container.getBoundingClientRect();
-      const x = (box.left + box.width / 2 - graph.left) / scale;
-      const y = (box.top + box.height / 2 - graph.top) / scale;
-      centerOnCoordinates(x, y);
+      const x = (box.left + box.width / 2 - graph.left);
+      const y = (box.top + box.height / 2 - graph.top);
+      setTranslate({
+        x: window.innerWidth / 2 - x,
+        y: window.innerHeight / 2 - y
+      });
     }
-    setScale(1);
-  };
+  }, 50); // short delay allows scale to apply
+};
+
 
   const toggleDarkMode = () => setDarkMode((prev) => !prev);
 
   const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
+    const container = e.currentTarget.getBoundingClientRect();
+    const mouseX = (e.clientX - container.left - translate.x) / scale;
+    const mouseY = (e.clientY - container.top - translate.y) / scale;
 
-    if (e.ctrlKey || Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-      const zoomIntensity = 0.001;
-      setScale(prev => {
-        const next = prev * (1 - e.deltaY * zoomIntensity);
-        return Math.min(Math.max(0.2, next), 4);
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      const zoomIntensity = 0.003;
+      setScale(prevScale => {
+        const newScale = Math.min(Math.max(0.2, prevScale * (1 - e.deltaY * zoomIntensity)), 4);
+        setTranslate({
+          x: e.clientX - container.left - mouseX * newScale,
+          y: e.clientY - container.top - mouseY * newScale
+        });
+        return newScale;
       });
     } else {
       setTranslate(prev => ({
