@@ -74,6 +74,20 @@ const FamilyTree: React.FC<Props> = ({ rootId, scale, darkMode, onSelectMember, 
 
   const { positions } = useMemo(() => computeLayout(rootId, 0, 0), [rootId, showChildren]);
 
+  const layoutSize = useMemo(() => {
+    if (positions.length === 0) {
+      return { width: NODE_WIDTH, height: NODE_HEIGHT };
+    }
+    const maxX = Math.max(...positions.map(p => p.x));
+    const maxY = Math.max(...positions.map(p => p.y));
+    const width = (maxX + 1) * (NODE_WIDTH + X_SPACING);
+    const height = (maxY + 1) * (NODE_HEIGHT + Y_SPACING);
+    return {
+      width: Math.max(width, NODE_WIDTH),
+      height: Math.max(height, NODE_HEIGHT),
+    };
+  }, [positions]);
+
   useEffect(() => {
     if (!onLayoutComputed) return;
     if (centerOnId) {
@@ -111,7 +125,7 @@ const FamilyTree: React.FC<Props> = ({ rootId, scale, darkMode, onSelectMember, 
   };
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+    <div style={{ position: 'relative', width: layoutSize.width, height: layoutSize.height }}>
       {positions.map(({ member, x, y }) => {
         const hasKids = (childrenMap.get(member.id) || []).length > 0;
         const kidsVisible = showChildren.has(member.id);
@@ -131,6 +145,7 @@ const FamilyTree: React.FC<Props> = ({ rootId, scale, darkMode, onSelectMember, 
               isChildrenVisible={kidsVisible}
               toggleChildren={() => toggleKids(member.id)}
               onClick={() => onSelectMember(member)}
+              darkMode={darkMode}
             />
           </div>
         );
