@@ -1,8 +1,32 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import FamilyTree from './components/FamilyTree';
 import SearchBox from './components/SearchBox';
 import BioModal from './components/BioModal';
 import familyTreeData, { FamilyMember } from './data/familyTreeData';
+import './App.css';
+
+const baseZoomButtonStyle: React.CSSProperties = {
+  width: 44,
+  height: 44,
+  borderRadius: 12,
+  border: 'none',
+  cursor: 'pointer',
+  fontSize: '1.1rem',
+  lineHeight: 1,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  transition: 'transform 0.2s ease, background 0.2s ease, color 0.2s ease',
+};
+
+const getZoomButtonStyle = (darkMode: boolean): React.CSSProperties => ({
+  ...baseZoomButtonStyle,
+  background: darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.92)',
+  color: darkMode ? '#f5f5f5' : '#222',
+  boxShadow: darkMode
+    ? '0 12px 28px rgba(0, 0, 0, 0.45)'
+    : '0 12px 26px rgba(0, 0, 0, 0.16)'
+});
 
 const App: React.FC = () => {
   const [rootId] = useState('adnan');
@@ -21,6 +45,10 @@ const App: React.FC = () => {
   const panStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const hasCenteredInitially = useRef(false);
   const lastCenteredId = useRef<string>('prophet');
+
+  useEffect(() => {
+    document.body.classList.toggle('dark', darkMode);
+  }, [darkMode]);
 
   // 🔒 Disable browser pinch/zoom
   useEffect(() => {
@@ -42,7 +70,7 @@ const App: React.FC = () => {
     };
   }, []);
 
-  const zoomIn = () => {
+  const zoomIn = useCallback(() => {
     const factor = 1.2;
     const centerX = window.innerWidth / 2;
     const centerY = window.innerHeight / 2;
@@ -57,9 +85,9 @@ const App: React.FC = () => {
       });
       return newScale;
     });
-  };
+  }, [scale, translate.x, translate.y]);
 
-  const zoomOut = () => {
+  const zoomOut = useCallback(() => {
     const factor = 1 / 1.2;
     const centerX = window.innerWidth / 2;
     const centerY = window.innerHeight / 2;
@@ -74,42 +102,44 @@ const App: React.FC = () => {
       });
       return newScale;
     });
-  };
+  }, [scale, translate.x, translate.y]);
 
-  const centerOnCoordinates = (x: number, y: number) => {
+  const centerOnCoordinates = useCallback((x: number, y: number) => {
     const centerX = window.innerWidth / 2;
     const centerY = window.innerHeight / 2;
     setTranslate({
       x: centerX - x * scale,
       y: centerY - y * scale,
     });
-  };
+  }, [scale]);
 
-const resetZoom = () => {
-  setScale(1);
+  const resetZoom = useCallback(() => {
+    setScale(1);
 
-  // Delay centering until after scale change takes effect
-  setTimeout(() => {
-    const targetId = lastCenteredId.current;
-    const el = document.getElementById(targetId);
-    const container = document.querySelector('.family-tree-root');
-    if (el && container) {
-      const box = el.getBoundingClientRect();
-      const graph = container.getBoundingClientRect();
-      const x = (box.left + box.width / 2 - graph.left);
-      const y = (box.top + box.height / 2 - graph.top);
-      setTranslate({
-        x: window.innerWidth / 2 - x,
-        y: window.innerHeight / 2 - y
-      });
-    }
-  }, 50); // short delay allows scale to apply
-};
-
+    // Delay centering until after scale change takes effect
+    setTimeout(() => {
+      const targetId = lastCenteredId.current;
+      const el = document.getElementById(targetId);
+      const container = document.querySelector('.family-tree-root');
+      if (el && container) {
+        const box = el.getBoundingClientRect();
+        const graph = container.getBoundingClientRect();
+        const x = (box.left + box.width / 2 - graph.left);
+        const y = (box.top + box.height / 2 - graph.top);
+        setTranslate({
+          x: window.innerWidth / 2 - x,
+          y: window.innerHeight / 2 - y
+        });
+      }
+    }, 50); // short delay allows scale to apply
+  }, []);
 
   const toggleDarkMode = () => setDarkMode((prev) => !prev);
 
   const handleWheel = (e: React.WheelEvent) => {
+    if (e.target instanceof Element && e.target.closest('.bio-modal, .zoom-controls')) {
+      return;
+    }
     const container = e.currentTarget.getBoundingClientRect();
     const mouseX = (e.clientX - container.left - translate.x) / scale;
     const mouseY = (e.clientY - container.top - translate.y) / scale;
@@ -134,6 +164,9 @@ const resetZoom = () => {
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.target instanceof Element && e.target.closest('.bio-modal, .zoom-controls')) {
+      return;
+    }
     setIsPanning(true);
     panStart.current = { x: e.clientX - translate.x, y: e.clientY - translate.y };
   };
@@ -147,6 +180,29 @@ const resetZoom = () => {
   };
 
   const handleMouseUp = () => setIsPanning(false);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    const touchTarget = e.target as Element | null;
+    if (touchTarget && touchTarget.closest('.bio-modal, .zoom-controls')) {
+      return;
+    }
+    setIsPanning(true);
+    const touch = e.touches[0];
+    panStart.current = { x: touch.clientX - translate.x, y: touch.clientY - translate.y };
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isPanning || e.touches.length !== 1) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    setTranslate({
+      x: touch.clientX - panStart.current.x,
+      y: touch.clientY - panStart.current.y,
+    });
+  };
+
+  const handleTouchEnd = () => setIsPanning(false);
 
   const handleSearchSelect = (member: FamilyMember) => {
     const ancestors = new Set<string>();
@@ -188,83 +244,67 @@ const resetZoom = () => {
       hasCenteredInitially.current = true;
       lastCenteredId.current = 'prophet';
     }
-  }, [scale]);
+  }, [scale, centerOnCoordinates]);
+
+  const zoomButtonStyle = getZoomButtonStyle(darkMode);
 
   return (
-    <div
-      className={darkMode ? 'dark-mode' : ''}
-      style={{
-        width: '100vw',
-        height: '100vh',
-        overflow: 'hidden',
-        position: 'relative',
-        background: darkMode ? '#222' : '#f5f5f5',
-      }}
-      onWheel={handleWheel}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-    >
-      <h1 style={{
-        position: 'absolute', top: 10, left: 20, margin: 0,
-        color: darkMode ? '#eee' : '#333', fontSize: '1.2rem', zIndex: 20
-      }}>
-        Prophet ﷺ Family Tree
-      </h1>
+    <div className={`app-container ${darkMode ? 'dark-mode' : ''}`}>
+      <header className="app-header">
+        <h1 className="app-title">Prophet ﷺ Family Tree</h1>
+        <div className="search-container">
+          <SearchBox onSelect={handleSearchSelect} />
+        </div>
+      </header>
 
-      <div style={{ position: 'absolute', top: 10, right: 20, zIndex: 20 }}>
-        <SearchBox onSelect={handleSearchSelect} />
-      </div>
-
-      <div style={{
-        position: 'absolute', bottom: 20, right: 20,
-        display: 'flex', flexDirection: 'column', gap: 8, zIndex: 20
-      }}>
-        <button onClick={toggleDarkMode} style={zoomButtonStyle} title="Toggle Dark Mode">
-          {darkMode ? '☀️' : '🌙'}
-        </button>
-        <button onClick={zoomIn} style={zoomButtonStyle}>＋</button>
-        <button onClick={zoomOut} style={zoomButtonStyle}>－</button>
-        <button onClick={resetZoom} style={zoomButtonStyle}>⟲</button>
-      </div>
-
-      {selectedMember && (
-        <BioModal
-          member={selectedMember}
-          onClose={() => setSelectedMember(null)}
-          onSelect={(m) => setSelectedMember(m)}
-        />
-      )}
-
-      <div
-        className="family-tree-root"
-        style={{
-          position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-          transform: `translate(${translate.x}px, ${translate.y}px) scale(${scale})`,
-          transformOrigin: '0 0'
-        }}
+      <main
+        className="app-canvas"
+        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
       >
-        <FamilyTree
-          rootId={rootId}
-          scale={scale}
-          darkMode={darkMode}
-          onSelectMember={setSelectedMember}
-          showChildren={showChildren}
-          setShowChildren={setShowChildren}
-        />
-      </div>
+        <div className="zoom-controls">
+          <button onClick={toggleDarkMode} style={zoomButtonStyle} title="Toggle Dark Mode" aria-label="Toggle dark mode">
+            {darkMode ? '☀️' : '🌙'}
+          </button>
+          <button onClick={zoomIn} style={zoomButtonStyle} aria-label="Zoom in">＋</button>
+          <button onClick={zoomOut} style={zoomButtonStyle} aria-label="Zoom out">－</button>
+          <button onClick={resetZoom} style={zoomButtonStyle} aria-label="Reset zoom">⟲</button>
+        </div>
+
+        {selectedMember && (
+          <BioModal
+            member={selectedMember}
+            onClose={() => setSelectedMember(null)}
+            onSelect={(m) => setSelectedMember(m)}
+          />
+        )}
+
+        <div
+          className="family-tree-root"
+          style={{
+            transform: `translate(${translate.x}px, ${translate.y}px) scale(${scale})`,
+            transformOrigin: '0 0'
+          }}
+        >
+          <FamilyTree
+            rootId={rootId}
+            scale={scale}
+            darkMode={darkMode}
+            onSelectMember={setSelectedMember}
+            showChildren={showChildren}
+            setShowChildren={setShowChildren}
+          />
+        </div>
+      </main>
     </div>
   );
-};
-
-const zoomButtonStyle: React.CSSProperties = {
-  width: 36, height: 36,
-  borderRadius: '50%', border: '2px solid #333',
-  background: 'white', cursor: 'pointer',
-  fontSize: '1.1rem', lineHeight: 1,
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
 };
 
 export default App;
