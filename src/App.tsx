@@ -19,8 +19,14 @@ const App: React.FC = () => {
   ]));
 
   const panStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const touchPanStart = useRef<{ x: number; y: number } | null>(null);
+  const pinchState = useRef<{
+    distance: number;
+    scale: number;
+  } | null>(null);
   const hasCenteredInitially = useRef(false);
   const lastCenteredId = useRef<string>('prophet');
+  const viewportRef = useRef<HTMLDivElement | null>(null);
 
   // 🔒 Disable browser pinch/zoom
   useEffect(() => {
@@ -42,6 +48,8 @@ const App: React.FC = () => {
     };
   }, []);
 
+  const clampScale = (value: number) => Math.min(Math.max(value, 0.2), 4);
+
   const zoomIn = () => {
     const factor = 1.2;
     const centerX = window.innerWidth / 2;
@@ -50,7 +58,7 @@ const App: React.FC = () => {
     const mouseY = (centerY - translate.y) / scale;
 
     setScale(prevScale => {
-      const newScale = Math.min(prevScale * factor, 4);
+      const newScale = clampScale(prevScale * factor);
       setTranslate({
         x: centerX - mouseX * newScale,
         y: centerY - mouseY * newScale,
@@ -67,7 +75,7 @@ const App: React.FC = () => {
     const mouseY = (centerY - translate.y) / scale;
 
     setScale(prevScale => {
-      const newScale = Math.max(prevScale * factor, 0.2);
+      const newScale = clampScale(prevScale * factor);
       setTranslate({
         x: centerX - mouseX * newScale,
         y: centerY - mouseY * newScale,
@@ -85,26 +93,26 @@ const App: React.FC = () => {
     });
   };
 
-const resetZoom = () => {
-  setScale(1);
+  const resetZoom = () => {
+    setScale(1);
 
-  // Delay centering until after scale change takes effect
-  setTimeout(() => {
-    const targetId = lastCenteredId.current;
-    const el = document.getElementById(targetId);
-    const container = document.querySelector('.family-tree-root');
-    if (el && container) {
-      const box = el.getBoundingClientRect();
-      const graph = container.getBoundingClientRect();
-      const x = (box.left + box.width / 2 - graph.left);
-      const y = (box.top + box.height / 2 - graph.top);
-      setTranslate({
-        x: window.innerWidth / 2 - x,
-        y: window.innerHeight / 2 - y
-      });
-    }
-  }, 50); // short delay allows scale to apply
-};
+    // Delay centering until after scale change takes effect
+    setTimeout(() => {
+      const targetId = lastCenteredId.current;
+      const el = document.getElementById(targetId);
+      const container = document.querySelector('.family-tree-root');
+      if (el && container) {
+        const box = el.getBoundingClientRect();
+        const graph = container.getBoundingClientRect();
+        const x = (box.left + box.width / 2 - graph.left);
+        const y = (box.top + box.height / 2 - graph.top);
+        setTranslate({
+          x: window.innerWidth / 2 - x,
+          y: window.innerHeight / 2 - y
+        });
+      }
+    }, 50); // short delay allows scale to apply
+  };
 
 
   const toggleDarkMode = () => setDarkMode((prev) => !prev);
@@ -118,7 +126,7 @@ const resetZoom = () => {
       e.preventDefault();
       const zoomIntensity = 0.003;
       setScale(prevScale => {
-        const newScale = Math.min(Math.max(0.2, prevScale * (1 - e.deltaY * zoomIntensity)), 4);
+        const newScale = clampScale(prevScale * (1 - e.deltaY * zoomIntensity));
         setTranslate({
           x: e.clientX - container.left - mouseX * newScale,
           y: e.clientY - container.top - mouseY * newScale
@@ -147,6 +155,91 @@ const resetZoom = () => {
   };
 
   const handleMouseUp = () => setIsPanning(false);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      setIsPanning(true);
+      touchPanStart.current = {
+        x: touch.clientX - translate.x,
+        y: touch.clientY - translate.y,
+      };
+    } else if (e.touches.length === 2) {
+      const [t1, t2] = Array.from(e.touches);
+      const distance = Math.hypot(
+        t1.clientX - t2.clientX,
+        t1.clientY - t2.clientY
+      );
+      pinchState.current = {
+        distance,
+        scale,
+      };
+      setIsPanning(false);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 1 && isPanning && touchPanStart.current) {
+      e.preventDefault();
+      const touch = e.touches[0];
+      setTranslate({
+        x: touch.clientX - touchPanStart.current.x,
+        y: touch.clientY - touchPanStart.current.y,
+      });
+    } else if (e.touches.length === 2 && pinchState.current) {
+      e.preventDefault();
+      const [t1, t2] = Array.from(e.touches);
+      const newDistance = Math.hypot(
+        t1.clientX - t2.clientX,
+        t1.clientY - t2.clientY
+      );
+      const rect = viewportRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const centerX = (t1.clientX + t2.clientX) / 2 - rect.left;
+      const centerY = (t1.clientY + t2.clientY) / 2 - rect.top;
+
+      setScale(prevScale => {
+        const newScale = clampScale(
+          pinchState.current!.scale * (newDistance / pinchState.current!.distance)
+        );
+
+        setTranslate(prevTranslate => {
+          const relativeX = (centerX - prevTranslate.x) / prevScale;
+          const relativeY = (centerY - prevTranslate.y) / prevScale;
+          return {
+            x: centerX - relativeX * newScale,
+            y: centerY - relativeY * newScale,
+          };
+        });
+
+        pinchState.current = {
+          distance: newDistance,
+          scale: newScale,
+        };
+
+        return newScale;
+      });
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (e.touches.length < 2 && pinchState.current) {
+      pinchState.current = null;
+    }
+
+    if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      touchPanStart.current = {
+        x: touch.clientX - translate.x,
+        y: touch.clientY - translate.y,
+      };
+      setIsPanning(true);
+    } else {
+      touchPanStart.current = null;
+      setIsPanning(false);
+    }
+  };
 
   const handleSearchSelect = (member: FamilyMember) => {
     const ancestors = new Set<string>();
@@ -190,14 +283,35 @@ const resetZoom = () => {
     }
   }, [scale]);
 
+  useEffect(() => {
+    if (window.innerWidth < 768) {
+      setScale(prev => clampScale(Math.min(prev, 0.8)));
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const targetId = lastCenteredId.current;
+      const el = document.getElementById(targetId);
+      const container = document.querySelector('.family-tree-root');
+      if (el && container) {
+        const box = el.getBoundingClientRect();
+        const graph = container.getBoundingClientRect();
+        const x = (box.left + box.width / 2 - graph.left) / scale;
+        const y = (box.top + box.height / 2 - graph.top) / scale;
+        centerOnCoordinates(x, y);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [scale]);
+
   return (
     <div
-      className={darkMode ? 'dark-mode' : ''}
+      ref={viewportRef}
+      className={`app-shell ${darkMode ? 'dark-mode' : ''}`}
       style={{
-        width: '100vw',
-        height: '100vh',
-        overflow: 'hidden',
-        position: 'relative',
         background: darkMode ? '#222' : '#f5f5f5',
       }}
       onWheel={handleWheel}
@@ -205,28 +319,26 @@ const resetZoom = () => {
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
     >
-      <h1 style={{
-        position: 'absolute', top: 10, left: 20, margin: 0,
-        color: darkMode ? '#eee' : '#333', fontSize: '1.2rem', zIndex: 20
-      }}>
+      <h1 className="app-title" style={{ color: darkMode ? '#eee' : '#333' }}>
         Prophet ﷺ Family Tree
       </h1>
 
-      <div style={{ position: 'absolute', top: 10, right: 20, zIndex: 20 }}>
+      <div className="search-container">
         <SearchBox onSelect={handleSearchSelect} />
       </div>
 
-      <div style={{
-        position: 'absolute', bottom: 20, right: 20,
-        display: 'flex', flexDirection: 'column', gap: 8, zIndex: 20
-      }}>
-        <button onClick={toggleDarkMode} style={zoomButtonStyle} title="Toggle Dark Mode">
+      <div className="control-panel">
+        <button onClick={toggleDarkMode} style={getZoomButtonStyle(darkMode)} title="Toggle Dark Mode">
           {darkMode ? '☀️' : '🌙'}
         </button>
-        <button onClick={zoomIn} style={zoomButtonStyle}>＋</button>
-        <button onClick={zoomOut} style={zoomButtonStyle}>－</button>
-        <button onClick={resetZoom} style={zoomButtonStyle}>⟲</button>
+        <button onClick={zoomIn} style={getZoomButtonStyle(darkMode)}>＋</button>
+        <button onClick={zoomOut} style={getZoomButtonStyle(darkMode)}>－</button>
+        <button onClick={resetZoom} style={getZoomButtonStyle(darkMode)}>⟲</button>
       </div>
 
       {selectedMember && (
@@ -258,13 +370,21 @@ const resetZoom = () => {
   );
 };
 
-const zoomButtonStyle: React.CSSProperties = {
-  width: 36, height: 36,
-  borderRadius: '50%', border: '2px solid #333',
-  background: 'white', cursor: 'pointer',
-  fontSize: '1.1rem', lineHeight: 1,
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-};
+const getZoomButtonStyle = (isDark: boolean): React.CSSProperties => ({
+  width: 44,
+  height: 44,
+  borderRadius: '50%',
+  border: `2px solid ${isDark ? '#d4d4d4' : '#333'}`,
+  background: isDark ? 'rgba(26, 43, 32, 0.75)' : 'rgba(255,255,255,0.9)',
+  color: isDark ? '#f4f4f4' : '#222',
+  cursor: 'pointer',
+  fontSize: '1.1rem',
+  lineHeight: 1,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  boxShadow: '0 6px 20px rgba(0,0,0,0.18)',
+  backdropFilter: 'blur(2px)'
+});
 
 export default App;

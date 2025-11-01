@@ -131,6 +131,7 @@ const FamilyTree: React.FC<Props> = ({ rootId, scale, darkMode, onSelectMember, 
               isChildrenVisible={kidsVisible}
               toggleChildren={() => toggleKids(member.id)}
               onClick={() => onSelectMember(member)}
+              darkMode={darkMode}
             />
           </div>
         );
