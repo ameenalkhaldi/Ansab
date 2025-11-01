@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import familyTreeData, { FamilyMember } from '../data/familyTreeData';
 import FamilyNode from './FamilyNode';
 import ConnectorLines from './ConnectorLines';
@@ -21,28 +21,18 @@ interface Props {
   setShowChildren: React.Dispatch<React.SetStateAction<Set<string>>>;
 }
 
-const BASE_NODE_WIDTH = 200;
-const BASE_NODE_HEIGHT = 100;
-const BASE_X_SPACING = 40;
-const BASE_Y_SPACING = 120;
-
-const getLayoutMetrics = (viewportWidth: number) => {
-  if (viewportWidth < 400) {
-    return { nodeWidth: 140, nodeHeight: 84, xSpacing: 24, ySpacing: 90 };
-  }
-  if (viewportWidth < 520) {
-    return { nodeWidth: 160, nodeHeight: 92, xSpacing: 28, ySpacing: 100 };
-  }
-  if (viewportWidth < 768) {
-    return { nodeWidth: 180, nodeHeight: 96, xSpacing: 32, ySpacing: 110 };
-  }
-  if (viewportWidth < 1024) {
-    return { nodeWidth: 190, nodeHeight: 100, xSpacing: 36, ySpacing: 115 };
-  }
-  return { nodeWidth: BASE_NODE_WIDTH, nodeHeight: BASE_NODE_HEIGHT, xSpacing: BASE_X_SPACING, ySpacing: BASE_Y_SPACING };
-};
+const NODE_WIDTH = 200;
+const NODE_HEIGHT = 100;
+const X_SPACING = 40;
+const Y_SPACING = 120;
 
 const FamilyTree: React.FC<Props> = ({ rootId, scale, darkMode, onSelectMember, onLayoutComputed, centerOnId, showChildren, setShowChildren }) => {
+  const parentMap = useMemo(() => {
+    const m = new Map<string, string>();
+    familyTreeData.forEach(mbr => { if (mbr.fatherId) m.set(mbr.id, mbr.fatherId); });
+    return m;
+  }, []);
+
   const childrenMap = useMemo(() => {
     const m = new Map<string, FamilyMember[]>();
     familyTreeData.forEach(mbr => {
@@ -54,26 +44,7 @@ const FamilyTree: React.FC<Props> = ({ rootId, scale, darkMode, onSelectMember, 
     return m;
   }, []);
 
-  const [layoutMetrics, setLayoutMetrics] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return getLayoutMetrics(window.innerWidth);
-    }
-    return { nodeWidth: BASE_NODE_WIDTH, nodeHeight: BASE_NODE_HEIGHT, xSpacing: BASE_X_SPACING, ySpacing: BASE_Y_SPACING };
-  });
-
-  useEffect(() => {
-    const handleResize = () => {
-      setLayoutMetrics(getLayoutMetrics(window.innerWidth));
-    };
-
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  const { nodeWidth, nodeHeight, xSpacing, ySpacing } = layoutMetrics;
-
-  const computeLayout = useCallback((id: string, depth: number, xOffset: number): { positions: Positioned[], width: number } => {
+  const computeLayout = (id: string, depth: number, xOffset: number): { positions: Positioned[], width: number } => {
     const node = familyTreeData.find(m => m.id === id);
     if (!node) return { positions: [], width: 0 };
 
@@ -99,9 +70,9 @@ const FamilyTree: React.FC<Props> = ({ rootId, scale, darkMode, onSelectMember, 
       positions: [{ member: node, x: myX, y: depth }, ...childPositions],
       width: totalWidth
     };
-  }, [childrenMap, showChildren]);
+  };
 
-  const { positions } = useMemo(() => computeLayout(rootId, 0, 0), [rootId, showChildren, computeLayout]);
+  const { positions } = useMemo(() => computeLayout(rootId, 0, 0), [rootId, showChildren]);
 
   useEffect(() => {
     if (!onLayoutComputed) return;
@@ -110,12 +81,12 @@ const FamilyTree: React.FC<Props> = ({ rootId, scale, darkMode, onSelectMember, 
       if (target) {
         onLayoutComputed({
           id: centerOnId,
-          x: target.x * (nodeWidth + xSpacing),
-          y: target.y * (nodeHeight + ySpacing)
+          x: target.x * (NODE_WIDTH + X_SPACING),
+          y: target.y * (NODE_HEIGHT + Y_SPACING)
         });
       }
     }
-  }, [positions, onLayoutComputed, centerOnId, nodeWidth, nodeHeight, xSpacing, ySpacing]);
+  }, [positions, onLayoutComputed, centerOnId]);
 
   const lines: Line[] = useMemo(() => {
     const visibleIds = new Set(positions.map(p => p.member.id));
@@ -150,8 +121,8 @@ const FamilyTree: React.FC<Props> = ({ rootId, scale, darkMode, onSelectMember, 
             id={member.id}
             style={{
               position: 'absolute',
-              left: x * (nodeWidth + xSpacing),
-              top: y * (nodeHeight + ySpacing),
+              left: x * (NODE_WIDTH + X_SPACING),
+              top: y * (NODE_HEIGHT + Y_SPACING),
             }}
           >
             <FamilyNode
@@ -160,9 +131,6 @@ const FamilyTree: React.FC<Props> = ({ rootId, scale, darkMode, onSelectMember, 
               isChildrenVisible={kidsVisible}
               toggleChildren={() => toggleKids(member.id)}
               onClick={() => onSelectMember(member)}
-              width={nodeWidth}
-              height={nodeHeight}
-              darkMode={darkMode}
             />
           </div>
         );

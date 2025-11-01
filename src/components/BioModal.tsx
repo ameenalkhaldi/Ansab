@@ -14,22 +14,28 @@ const BioModal: React.FC<Props> = ({ member, onClose, onSelect }) => {
   return (
     <div
       onWheel={(e) => e.stopPropagation()}
-      className="bio-modal"
-      role="dialog"
-      aria-modal="true"
-      aria-label={`${member.name} biography`}
+      style={{
+        position: 'absolute',
+        top: 60,
+        left: 0,
+        bottom: 0,
+        width: 320,
+        padding: 16,
+        background: '#fff',
+        borderRight: '1px solid #ccc',
+        overflowY: 'auto',
+        zIndex: 25,
+      }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem' }}>
-        <h2 style={{ margin: 0 }}>{member.name}</h2>
-        <button onClick={onClose} className="bio-modal__close" aria-label="Close biography">✖</button>
-      </div>
+      <button onClick={onClose} style={{ float: 'right', fontSize: '1.2rem' }}>✖</button>
+      <h2 style={{ marginTop: 0 }}>{member.name}</h2>
 
       {(member.birthYear || member.deathYear) && (
-        <p className="bio-modal__section"><strong>Life:</strong> {member.birthYear ?? '—'} – {member.deathYear ?? '—'}</p>
+        <p><strong>Life:</strong> {member.birthYear ?? '—'} – {member.deathYear ?? '—'}</p>
       )}
 
       {father && (
-        <p className="bio-modal__section"><strong>Father:</strong>{' '}
+        <p><strong>Father:</strong>{' '}
           <a href="#" onClick={(e) => { e.preventDefault(); onSelect(father); }}>
             {father.name}
           </a>
@@ -37,7 +43,7 @@ const BioModal: React.FC<Props> = ({ member, onClose, onSelect }) => {
       )}
 
       {children.length > 0 && (
-        <p className="bio-modal__section"><strong>Children:</strong>{' '}
+        <p><strong>Children:</strong>{' '}
           {children.map((child, idx) => (
             <span key={child.id}>
               <a href="#" onClick={(e) => { e.preventDefault(); onSelect(child); }}>
@@ -49,14 +55,14 @@ const BioModal: React.FC<Props> = ({ member, onClose, onSelect }) => {
       )}
 
       {member.biography && (
-        <div className="bio-modal__section">
+        <div style={{ marginTop: 12 }}>
           <strong>Biography:</strong>
           <p>{member.biography}</p>
         </div>
       )}
 
       {member.sources && member.sources.length > 0 && (
-        <div className="bio-modal__section bio-modal__links">
+        <div style={{ marginTop: 12 }}>
           <strong>Sources:</strong>
           <ul style={{ paddingLeft: 18 }}>
             {member.sources.map((source, i) => (
