@@ -30,11 +30,12 @@ const SearchBox: React.FC<SearchBoxProps> = ({ onSelect }) => {
 
   return (
     <div
-      style={{ position: 'relative', width: 250 }}
+      className="search-box"
       onBlur={() => setTimeout(() => setFocused(false), 150)}
     >
       <input
         type="text"
+        className="search-box__input"
         placeholder="Search Name or ID"
         value={query}
         onChange={e => {
@@ -43,24 +44,14 @@ const SearchBox: React.FC<SearchBoxProps> = ({ onSelect }) => {
         }}
         onKeyDown={handleEnter}
         onFocus={() => setFocused(true)}
-        style={{ width: '100%', padding: '6px', borderRadius: 4 }}
+        aria-label="Search for a family member"
       />
 
       {focused && query.trim() !== '' && filtered.length > 0 && (
         <div
           onWheel={(e) => e.stopPropagation()}
-          style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            width: '100%',
-            maxHeight: 200,
-            overflowY: 'auto',
-            background: '#fff',
-            border: '1px solid #ccc',
-            zIndex: 100,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-          }}
+          className="search-box__results"
+          role="listbox"
         >
           {filtered.map(m => (
             <div
@@ -71,11 +62,8 @@ const SearchBox: React.FC<SearchBoxProps> = ({ onSelect }) => {
                 setQuery('');
                 setFocused(false);
               }}
-              style={{
-                padding: '6px 8px',
-                borderBottom: '1px solid #eee',
-                cursor: 'pointer'
-              }}
+              className="search-box__result"
+              role="option"
             >
               {m.name}
             </div>
