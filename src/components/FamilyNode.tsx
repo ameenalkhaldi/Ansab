@@ -7,6 +7,9 @@ interface Props {
   isChildrenVisible: boolean;
   toggleChildren: () => void;
   onClick?: () => void;
+  width: number;
+  height: number;
+  darkMode: boolean;
 }
 
 const FamilyNode: React.FC<Props> = ({
@@ -14,7 +17,10 @@ const FamilyNode: React.FC<Props> = ({
   hasChildren,
   isChildrenVisible,
   toggleChildren,
-  onClick
+  onClick,
+  width,
+  height,
+  darkMode
 }) => {
   const birth = member.birthYear !== undefined ? member.birthYear : '?';
   const death = member.deathYear !== undefined ? member.deathYear : '?';
@@ -25,42 +31,24 @@ const FamilyNode: React.FC<Props> = ({
       className="family-node"
       onClick={onClick}
       style={{
-        width: 200,
-        minHeight: 100,
-        border: '1px solid #999',
-        borderRadius: 8,
-        padding: 10,
-        background: '#fff',
-        textAlign: 'center',
-        cursor: 'pointer',
-        boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
+        width,
+        minHeight: height,
+        borderColor: darkMode ? '#555' : '#999',
       }}
     >
       <div>
-        <div style={{ fontWeight: 'bold' }}>{member.name}</div>
+        <div className="family-node__name">{member.name}</div>
 
-        <div style={{ fontSize: '0.85em', color: '#555' }}>
+        <div className="family-node__years">
           {birth} – {death}
         </div>
 
         {member.tagline ? (
-          <div style={{
-            marginTop: 4,
-            fontSize: '0.8em',
-            fontStyle: 'italic',
-            color: '#777',
-          }}>
+          <div className="family-node__tagline">
             {member.tagline}
           </div>
         ) : (
-          <div style={{
-            marginTop: 4,
-            fontSize: '0.8em',
-            visibility: 'hidden'
-          }}>
+          <div style={{ marginTop: '0.4rem', fontSize: '0.8rem', visibility: 'hidden' }}>
             placeholder
           </div>
         )}
@@ -72,23 +60,10 @@ const FamilyNode: React.FC<Props> = ({
             e.stopPropagation();
             toggleChildren();
           }}
-          style={{
-            marginTop: 8,
-            borderRadius: '50%',
-            width: 24,
-            height: 24,
-            fontSize: '14px',
-            border: 'none',
-            background: '#eee',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 0,
-            lineHeight: 1,
-            alignSelf: 'center'
-          }}
+          className="family-node__children-toggle"
           title={isChildrenVisible ? "Hide Children" : "Show Children"}
+          aria-label={isChildrenVisible ? `Hide children of ${member.name}` : `Show children of ${member.name}`}
+          type="button"
         >
           {isChildrenVisible ? '➖' : '➕'}
         </button>
