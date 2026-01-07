@@ -7,7 +7,7 @@ import type { FamilyMember } from './types';
 
 const App: React.FC = () => {
   const { members, loading, error } = useMembers();
-  
+
   const [rootId] = useState('adnan');
   const [scale, setScale] = useState(1);
   const [translate, setTranslate] = useState({ x: 0, y: 0 });
@@ -105,29 +105,6 @@ const App: React.FC = () => {
 
   const resetZoom = () => {
     setScale(1);
-<<<<<<< HEAD
-=======
-
-    // Delay centering until after scale change takes effect
-    setTimeout(() => {
-      const targetId = lastCenteredId.current;
-      const el = document.getElementById(targetId);
-      const container = document.querySelector('.family-tree-root');
-      if (el && container) {
-        const box = el.getBoundingClientRect();
-        const graph = container.getBoundingClientRect();
-        const x = (box.left + box.width / 2 - graph.left);
-        const y = (box.top + box.height / 2 - graph.top);
-        setTranslate({
-          x: window.innerWidth / 2 - x,
-          y: window.innerHeight / 2 - y
-        });
-      }
-    }, 50); // short delay allows scale to apply
-  };
->>>>>>> e4bdb57fcc6aa4205687cc06a9ab16db40cc3f5b
-
-    // Delay centering until after scale change takes effect
     setTimeout(() => {
       const targetId = lastCenteredId.current;
       const el = document.getElementById(targetId);
@@ -311,52 +288,6 @@ const App: React.FC = () => {
     }
   }, [scale, members.length]);
 
-  // Show loading state
-  if (loading) {
-    return (
-      <div style={{
-        width: '100vw',
-        height: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: '#f5f5f5',
-        flexDirection: 'column',
-        gap: 16,
-      }}>
-        <div style={{ fontSize: '1.5rem' }}>Loading family tree...</div>
-        <div style={{ 
-          width: 40, 
-          height: 40, 
-          border: '4px solid #eee',
-          borderTop: '4px solid #333',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite',
-        }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
-  }
-
-  // Show error state
-  if (error) {
-    return (
-      <div style={{
-        width: '100vw',
-        height: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: '#f5f5f5',
-        flexDirection: 'column',
-        gap: 16,
-      }}>
-        <div style={{ fontSize: '1.5rem', color: '#c00' }}>Error loading family tree</div>
-        <div style={{ color: '#666' }}>{error.message}</div>
-      </div>
-    );
-  }
-
   useEffect(() => {
     if (window.innerWidth < 768) {
       setScale(prev => clampScale(Math.min(prev, 0.8)));
@@ -381,13 +312,32 @@ const App: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, [scale]);
 
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="loading-screen">
+        <div className="loading-ornament">
+          <div className="loading-spinner"></div>
+        </div>
+        <div className="loading-text">Loading family tree...</div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="loading-screen">
+        <div className="loading-text error">Error loading family tree</div>
+        <div className="loading-subtext">{error.message}</div>
+      </div>
+    );
+  }
+
   return (
     <div
       ref={viewportRef}
       className={`app-shell ${darkMode ? 'dark-mode' : ''}`}
-      style={{
-        background: darkMode ? '#222' : '#f5f5f5',
-      }}
       onWheel={handleWheel}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
@@ -398,26 +348,32 @@ const App: React.FC = () => {
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
     >
-      <h1 className="app-title" style={{ color: darkMode ? '#eee' : '#333' }}>
-        Prophet ﷺ Family Tree
-      </h1>
+      {/* Decorative corner ornaments */}
+      <div className="corner-ornament top-left"></div>
+      <div className="corner-ornament top-right"></div>
+      <div className="corner-ornament bottom-left"></div>
+      <div className="corner-ornament bottom-right"></div>
 
-<<<<<<< HEAD
-      <div style={{ position: 'absolute', top: 10, right: 20, zIndex: 20 }}>
-        <SearchBox members={members} onSelect={handleSearchSelect} />
-=======
+      <header className="app-header">
+        <h1 className="app-title">
+          <span className="title-decoration left"></span>
+          Shajarat al-Ansab
+          <span className="title-decoration right"></span>
+        </h1>
+        <p className="app-subtitle">The Noble Lineage</p>
+      </header>
+
       <div className="search-container">
-        <SearchBox onSelect={handleSearchSelect} />
->>>>>>> e4bdb57fcc6aa4205687cc06a9ab16db40cc3f5b
+        <SearchBox members={members} onSelect={handleSearchSelect} />
       </div>
 
       <div className="control-panel">
-        <button onClick={toggleDarkMode} style={getZoomButtonStyle(darkMode)} title="Toggle Dark Mode">
-          {darkMode ? '☀️' : '🌙'}
+        <button onClick={toggleDarkMode} className="control-btn" title="Toggle Theme">
+          {darkMode ? 'Light' : 'Dark'}
         </button>
-        <button onClick={zoomIn} style={getZoomButtonStyle(darkMode)}>＋</button>
-        <button onClick={zoomOut} style={getZoomButtonStyle(darkMode)}>－</button>
-        <button onClick={resetZoom} style={getZoomButtonStyle(darkMode)}>⟲</button>
+        <button onClick={zoomIn} className="control-btn" title="Zoom In">+</button>
+        <button onClick={zoomOut} className="control-btn" title="Zoom Out">-</button>
+        <button onClick={resetZoom} className="control-btn" title="Reset View">Reset</button>
       </div>
 
       {selectedMember && (
@@ -450,22 +406,5 @@ const App: React.FC = () => {
     </div>
   );
 };
-
-const getZoomButtonStyle = (isDark: boolean): React.CSSProperties => ({
-  width: 44,
-  height: 44,
-  borderRadius: '50%',
-  border: `2px solid ${isDark ? '#d4d4d4' : '#333'}`,
-  background: isDark ? 'rgba(26, 43, 32, 0.75)' : 'rgba(255,255,255,0.9)',
-  color: isDark ? '#f4f4f4' : '#222',
-  cursor: 'pointer',
-  fontSize: '1.1rem',
-  lineHeight: 1,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  boxShadow: '0 6px 20px rgba(0,0,0,0.18)',
-  backdropFilter: 'blur(2px)'
-});
 
 export default App;

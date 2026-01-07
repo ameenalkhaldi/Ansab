@@ -33,7 +33,8 @@ const ConnectorLines: React.FC<Props> = ({ lines, scale, darkMode }) => {
     setPos(arr);
   }, [lines, scale]);
 
-  const strokeColor = darkMode ? '#eee' : '#000';
+  // Arabesque gold color for lines
+  const strokeColor = darkMode ? '#c9a227' : '#a6851d';
 
   return (
     <div
@@ -49,12 +50,31 @@ const ConnectorLines: React.FC<Props> = ({ lines, scale, darkMode }) => {
           const mY = (p.from.y + p.to.y) / 2;
           return (
             <g key={i}>
-              <line x1={p.from.x} y1={p.from.y} x2={p.from.x} y2={mY}
-                stroke={strokeColor} strokeWidth={2} />
-              <line x1={p.from.x} y1={mY} x2={p.to.x}   y2={mY}
-                stroke={strokeColor} strokeWidth={2} />
-              <line x1={p.to.x}   y1={mY} x2={p.to.x}   y2={p.to.y}
-                stroke={strokeColor} strokeWidth={2} />
+              <line 
+                x1={p.from.x} y1={p.from.y} x2={p.from.x} y2={mY}
+                stroke={strokeColor} 
+                strokeWidth={1.5}
+                strokeDasharray="none"
+              />
+              <line 
+                x1={p.from.x} y1={mY} x2={p.to.x} y2={mY}
+                stroke={strokeColor} 
+                strokeWidth={1.5}
+                strokeDasharray="none"
+              />
+              <line 
+                x1={p.to.x} y1={mY} x2={p.to.x} y2={p.to.y}
+                stroke={strokeColor} 
+                strokeWidth={1.5}
+                strokeDasharray="none"
+              />
+              {/* Small diamond at junction point */}
+              <circle
+                cx={p.from.x}
+                cy={mY}
+                r={3}
+                fill={strokeColor}
+              />
             </g>
           );
         })}

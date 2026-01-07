@@ -29,6 +29,12 @@ const SearchBox: React.FC<SearchBoxProps> = ({ members, onSelect }) => {
     }
   };
 
+  const handleSelect = (member: FamilyMember) => {
+    onSelect(member);
+    setQuery('');
+    setFocused(false);
+  };
+
   return (
     <div
       className="search-box"
@@ -36,7 +42,7 @@ const SearchBox: React.FC<SearchBoxProps> = ({ members, onSelect }) => {
     >
       <input
         type="text"
-        placeholder="Search Name or ID"
+        placeholder="Search by name..."
         value={query}
         onChange={e => {
           setQuery(e.target.value);
@@ -55,17 +61,10 @@ const SearchBox: React.FC<SearchBoxProps> = ({ members, onSelect }) => {
           {filtered.map(m => (
             <div
               key={m.id}
-              onMouseDown={() => {
-                onSelect(m);
-                setQuery('');
-                setFocused(false);
-              }}
+              onMouseDown={() => handleSelect(m)}
               onTouchStart={(e) => {
                 e.preventDefault();
-                const member = familyTreeData.find(p => p.id === m.id);
-                if (member) onSelect(member);
-                setQuery('');
-                setFocused(false);
+                handleSelect(m);
               }}
               className="search-box__result"
             >

@@ -21,35 +21,112 @@ const FamilyNode: React.FC<Props> = ({
   const birth = member.birthYear !== undefined && member.birthYear !== null ? member.birthYear : '?';
   const death = member.deathYear !== undefined && member.deathYear !== null ? member.deathYear : '?';
 
+  // Arabesque color palette
+  const colors = {
+    light: {
+      bg: '#faf8f0',
+      border: '#c9a227',
+      borderHover: '#dbb42c',
+      text: '#2c2416',
+      textMuted: '#5c503a',
+      tagline: '#6b5b3d',
+      btnBg: '#f5f1e3',
+      btnBgHover: '#e8e0c8',
+      btnBorder: '#a6851d',
+      shadow: 'rgba(0, 0, 0, 0.1)',
+      shadowHover: 'rgba(0, 0, 0, 0.15)',
+    },
+    dark: {
+      bg: '#1b263b',
+      border: '#c9a227',
+      borderHover: '#dbb42c',
+      text: '#e8e0c8',
+      textMuted: '#a69a80',
+      tagline: '#b8a87a',
+      btnBg: '#0d1b2a',
+      btnBgHover: '#415a77',
+      btnBorder: '#c9a227',
+      shadow: 'rgba(0, 0, 0, 0.35)',
+      shadowHover: 'rgba(0, 0, 0, 0.45)',
+    }
+  };
+
+  const c = darkMode ? colors.dark : colors.light;
+
   const nodeStyles: React.CSSProperties = {
     width: 200,
-    minHeight: 100,
-    border: `1px solid ${darkMode ? 'rgba(255,255,255,0.35)' : '#999'}`,
-    borderRadius: 12,
-    padding: 12,
-    background: darkMode ? 'rgba(32, 43, 35, 0.92)' : '#fff',
-    color: darkMode ? '#f5f5f5' : '#333',
+    minHeight: 110,
+    padding: '14px 16px',
+    background: c.bg,
+    border: `1px solid ${c.border}`,
+    borderRadius: 0, // Sharp corners for arabesque aesthetic
+    color: c.text,
     textAlign: 'center',
     cursor: 'pointer',
-    boxShadow: darkMode
-      ? '0 12px 28px rgba(0,0,0,0.45)'
-      : '0 10px 25px rgba(0,0,0,0.12)',
+    boxShadow: `0 4px 16px ${c.shadow}`,
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'space-between',
-    backdropFilter: darkMode ? 'blur(6px)' : undefined,
-    transition: 'transform 0.15s ease, box-shadow 0.2s ease',
+    position: 'relative',
+    transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease',
+    fontFamily: "'Amiri', 'Times New Roman', serif",
+  };
+
+  // Corner decorations
+  const cornerStyle = (position: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight'): React.CSSProperties => {
+    const base: React.CSSProperties = {
+      position: 'absolute',
+      width: '12px',
+      height: '12px',
+      borderColor: c.border,
+      borderStyle: 'solid',
+      borderWidth: 0,
+    };
+
+    switch (position) {
+      case 'topLeft':
+        return { ...base, top: 4, left: 4, borderTopWidth: 1, borderLeftWidth: 1 };
+      case 'topRight':
+        return { ...base, top: 4, right: 4, borderTopWidth: 1, borderRightWidth: 1 };
+      case 'bottomLeft':
+        return { ...base, bottom: 4, left: 4, borderBottomWidth: 1, borderLeftWidth: 1 };
+      case 'bottomRight':
+        return { ...base, bottom: 4, right: 4, borderBottomWidth: 1, borderRightWidth: 1 };
+    }
+  };
+
+  const nameStyles: React.CSSProperties = {
+    fontFamily: "'Cormorant Garamond', Georgia, serif",
+    fontWeight: 600,
+    fontSize: '1.05rem',
+    letterSpacing: '0.03em',
+    marginBottom: 2,
+  };
+
+  const yearsStyles: React.CSSProperties = {
+    fontSize: '0.82rem',
+    color: c.textMuted,
+    letterSpacing: '0.08em',
+  };
+
+  const taglineStyles: React.CSSProperties = {
+    marginTop: 6,
+    fontSize: '0.78rem',
+    fontStyle: 'italic',
+    color: c.tagline,
+    lineHeight: 1.3,
   };
 
   const buttonStyles: React.CSSProperties = {
-    marginTop: 8,
-    borderRadius: '999px',
+    marginTop: 10,
     width: 28,
     height: 28,
-    fontSize: '16px',
-    border: 'none',
-    background: darkMode ? 'rgba(45, 122, 75, 0.3)' : '#eef2ef',
-    color: darkMode ? '#f5f5f5' : '#1f3526',
+    fontSize: '14px',
+    fontFamily: "'Cormorant Garamond', Georgia, serif",
+    fontWeight: 600,
+    border: `1px solid ${c.btnBorder}`,
+    background: c.btnBg,
+    color: c.border,
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
@@ -57,9 +134,7 @@ const FamilyNode: React.FC<Props> = ({
     padding: 0,
     lineHeight: 1,
     alignSelf: 'center',
-    boxShadow: darkMode
-      ? '0 6px 12px rgba(0,0,0,0.35)'
-      : '0 4px 10px rgba(0,0,0,0.12)'
+    transition: 'background 0.15s ease, transform 0.1s ease',
   };
 
   return (
@@ -69,30 +144,20 @@ const FamilyNode: React.FC<Props> = ({
       onClick={onClick}
       style={nodeStyles}
     >
-      <div>
-        <div style={{ fontWeight: 'bold' }}>{member.name}</div>
+      {/* Corner decorations */}
+      <span style={cornerStyle('topLeft')} />
+      <span style={cornerStyle('topRight')} />
+      <span style={cornerStyle('bottomLeft')} />
+      <span style={cornerStyle('bottomRight')} />
 
-        <div style={{ fontSize: '0.85em', color: darkMode ? 'rgba(240,240,240,0.75)' : '#555' }}>
-          {birth} – {death}
-        </div>
+      <div>
+        <div style={nameStyles}>{member.name}</div>
+        <div style={yearsStyles}>{birth} - {death}</div>
 
         {member.tagline ? (
-          <div style={{
-            marginTop: 4,
-            fontSize: '0.8em',
-            fontStyle: 'italic',
-            color: darkMode ? 'rgba(220,220,220,0.7)' : '#777',
-          }}>
-            {member.tagline}
-          </div>
+          <div style={taglineStyles}>{member.tagline}</div>
         ) : (
-          <div style={{
-            marginTop: 4,
-            fontSize: '0.8em',
-            visibility: 'hidden'
-          }}>
-            placeholder
-          </div>
+          <div style={{ ...taglineStyles, visibility: 'hidden' }}>placeholder</div>
         )}
       </div>
 
@@ -104,8 +169,14 @@ const FamilyNode: React.FC<Props> = ({
           }}
           style={buttonStyles}
           title={isChildrenVisible ? "Hide Children" : "Show Children"}
+          onMouseOver={(e) => {
+            e.currentTarget.style.background = c.btnBgHover;
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.background = c.btnBg;
+          }}
         >
-          {isChildrenVisible ? '➖' : '➕'}
+          {isChildrenVisible ? '-' : '+'}
         </button>
       )}
     </div>
