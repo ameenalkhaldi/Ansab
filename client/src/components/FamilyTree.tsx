@@ -46,6 +46,14 @@ const FamilyTree: React.FC<Props> = ({
         m.get(mbr.fatherId)!.push(mbr);
       }
     });
+    // Sort children by birth year (earliest first), unknown years go last
+    m.forEach((children, _key) => {
+      children.sort((a, b) => {
+        const aYear = a.birthYear ?? Infinity;
+        const bYear = b.birthYear ?? Infinity;
+        return aYear - bYear;
+      });
+    });
     return m;
   }, [members]);
 
