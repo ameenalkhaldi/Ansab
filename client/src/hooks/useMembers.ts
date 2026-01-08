@@ -53,11 +53,11 @@ export function useMember(id: string | null): UseMemberResult {
 
     let cancelled = false;
 
-    async function fetchMember() {
+    async function fetchMember(memberId: string) {
       try {
         setLoading(true);
         setError(null);
-        const data = await api.getMemberById(id);
+        const data = await api.getMemberById(memberId);
         if (!cancelled) {
           setMember(data);
         }
@@ -72,7 +72,7 @@ export function useMember(id: string | null): UseMemberResult {
       }
     }
 
-    fetchMember();
+    fetchMember(id);
 
     return () => {
       cancelled = true;
