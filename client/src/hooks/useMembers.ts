@@ -54,7 +54,7 @@ export function useMember(id: string | null): UseMemberResult {
     let cancelled = false;
     const memberId = id; // Capture non-null id for closure
 
-    async function fetchMember() {
+    async function fetchMember(memberId: string) {
       try {
         setLoading(true);
         setError(null);
@@ -73,7 +73,7 @@ export function useMember(id: string | null): UseMemberResult {
       }
     }
 
-    fetchMember();
+    fetchMember(id);
 
     return () => {
       cancelled = true;
