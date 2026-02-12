@@ -43,7 +43,7 @@ src/
 
 ### Environment Variables
 
-Create `.env` file:
+Copy `.env.example` to `.env`, then edit values:
 
 ```env
 # Database
@@ -55,6 +55,12 @@ DB_PASSWORD=postgres
 
 # Server
 PORT=3001
+NODE_ENV=development
+
+# API security
+CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=300
 ```
 
 ### Database Connection
@@ -63,7 +69,7 @@ PORT=3001
 // src/db/index.ts
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432'),
+  port: parseInt(process.env.DB_PORT || '5433'),
   database: process.env.DB_NAME || 'ansab',
   user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || 'postgres',
@@ -203,12 +209,24 @@ export async function handler(req: Request, res: Response) {
 
 ```typescript
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000'],
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    callback(null, allowedOrigins.has(origin));
+  },
   credentials: true,
 }));
 ```
 
-Update origins for production.
+Set `CORS_ORIGINS` (comma-separated) for production frontend domains.
+
+## Rate Limiting
+
+The API includes an in-memory IP-based rate limiter with defaults:
+
+- `RATE_LIMIT_WINDOW_MS=900000` (15 minutes)
+- `RATE_LIMIT_MAX_REQUESTS=300`
+
+Adjust via environment variables based on expected traffic.
 
 ## Scripts
 
@@ -265,5 +283,5 @@ router.get('/new-endpoint', newHandler);
 - Use connection pooling (default: 10 connections)
 - Enable HTTPS
 - Restrict CORS origins
-- Add rate limiting
+- Tune rate limiting thresholds
 - Use environment secrets management

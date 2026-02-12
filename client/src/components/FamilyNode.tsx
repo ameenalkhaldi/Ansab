@@ -139,7 +139,6 @@ const FamilyNode: React.FC<Props> = ({
 
   return (
     <div
-      id={member.id}
       className="family-node"
       onClick={onClick}
       style={nodeStyles}

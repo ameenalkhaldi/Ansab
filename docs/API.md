@@ -396,10 +396,13 @@ curl "http://localhost:3001/api/members/search?q=hasan"
 
 ## Rate Limiting
 
-Currently no rate limiting is implemented. For production, consider adding:
+An IP-based in-memory rate limiter is enabled for `/api/*`.
 
-- Request rate limits per IP
-- API key authentication for heavy usage
+- Default window: `900000` ms (15 minutes)
+- Default limit: `300` requests per IP per window
+- Configure via `RATE_LIMIT_WINDOW_MS` and `RATE_LIMIT_MAX_REQUESTS`
+
+For large-scale deployments, consider replacing in-memory storage with Redis.
 
 ---
 

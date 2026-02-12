@@ -34,7 +34,7 @@ npm install
 docker compose up -d
 
 # Create environment file
-# Copy the example below to server/.env
+cp server/.env.example server/.env
 
 # Seed database
 npm run seed
@@ -45,7 +45,7 @@ npm run dev
 
 ### Environment File
 
-Create `server/.env`:
+Example `server/.env`:
 
 ```env
 DB_HOST=localhost
@@ -54,6 +54,10 @@ DB_NAME=ansab
 DB_USER=postgres
 DB_PASSWORD=postgres
 PORT=3001
+NODE_ENV=development
+CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=300
 ```
 
 ---

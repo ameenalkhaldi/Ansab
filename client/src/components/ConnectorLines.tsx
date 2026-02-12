@@ -2,12 +2,14 @@ import React, { useEffect, useState, useRef } from 'react';
 
 interface Line { fromId: string; toId: string; }
 interface Props { lines: Line[]; scale: number; darkMode: boolean; }
+interface LinePosition {
+  from: { x: number; y: number };
+  to: { x: number; y: number };
+}
 
 const ConnectorLines: React.FC<Props> = ({ lines, scale, darkMode }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState<
-    { from: { x: number; y: number }; to: { x: number; y: number } }[]
-  >([]);
+  const [pos, setPos] = useState<LinePosition[]>([]);
 
   useEffect(() => {
     const arr = lines.map(l => {
@@ -29,7 +31,7 @@ const ConnectorLines: React.FC<Props> = ({ lines, scale, darkMode }) => {
         };
       }
       return null;
-    }).filter((x): x is any => !!x);
+    }).filter((x): x is LinePosition => x !== null);
     setPos(arr);
   }, [lines, scale]);
 

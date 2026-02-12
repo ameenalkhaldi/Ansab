@@ -125,7 +125,7 @@ CREATE DATABASE ansab;
 
 ### 4. Configure Environment
 
-Create `server/.env`:
+Copy `server/.env.example` to `server/.env`, then edit values:
 
 ```env
 # Database
@@ -137,6 +137,12 @@ DB_PASSWORD=postgres
 
 # Server
 PORT=3001
+NODE_ENV=development
+
+# API security
+CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=300
 ```
 
 ### 5. Seed the Database
@@ -415,11 +421,17 @@ Response: Array of matching members (max 20 results)
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `DB_HOST` | localhost | PostgreSQL host |
-| `DB_PORT` | 5432 | PostgreSQL port |
+| `DB_PORT` | 5433 | PostgreSQL port |
 | `DB_NAME` | ansab | Database name |
 | `DB_USER` | postgres | Database user |
 | `DB_PASSWORD` | postgres | Database password |
 | `PORT` | 3001 | Express server port |
+| `NODE_ENV` | development | Runtime mode (`development` or `production`) |
+| `CORS_ORIGINS` | localhost frontend URLs | Comma-separated list of allowed frontend origins |
+| `FRONTEND_ORIGIN` | (empty) | Optional single-origin alias |
+| `RATE_LIMIT_WINDOW_MS` | 900000 | Rate limit window in milliseconds |
+| `RATE_LIMIT_MAX_REQUESTS` | 300 | Max requests per client IP per window |
+| `TRUST_PROXY` | (auto in prod) | Proxy hop count/string when behind reverse proxy |
 
 #### Client
 
@@ -470,7 +482,7 @@ npm run build
 - [ ] Use environment variables for database credentials
 - [ ] Enable CORS only for your frontend domain
 - [ ] Set up database connection pooling
-- [ ] Add rate limiting to API
+- [ ] Tune API rate limiting thresholds for expected traffic
 - [ ] Enable HTTPS
 
 ---
