@@ -52,12 +52,13 @@ export function useMember(id: string | null): UseMemberResult {
     }
 
     let cancelled = false;
+    const memberId = id; // Capture non-null id for closure
 
     async function fetchMember() {
       try {
         setLoading(true);
         setError(null);
-        const data = await api.getMemberById(id);
+        const data = await api.getMemberById(memberId);
         if (!cancelled) {
           setMember(data);
         }
